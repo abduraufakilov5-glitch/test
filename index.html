@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Долги клиентов</title>
+
+<meta name="theme-color" content="#FAF8F5" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Долги" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ============== ЭКРАН ВХОДА ============== -->
+<section id="view-login" class="view">
+  <div class="login-wrap">
+    <div class="login-logo" aria-hidden="true"></div>
+    <h1 class="login-title">Долги клиентов</h1>
+    <p class="login-subtitle">Войдите, чтобы продолжить</p>
+
+    <form id="login-form" class="login-form" autocomplete="on">
+      <label class="field">
+        <span class="field-label">Email</span>
+        <input type="email" id="login-email" required autocomplete="username" inputmode="email" />
+      </label>
+      <label class="field">
+        <span class="field-label">Пароль</span>
+        <input type="password" id="login-password" required autocomplete="current-password" />
+      </label>
+      <div id="login-error" class="form-error" hidden></div>
+      <button type="submit" id="login-submit" class="btn btn-primary btn-block">Войти</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============== ПРИЛОЖЕНИЕ (после входа) ============== -->
+<div id="app-root" class="app-root" hidden>
+
+  <div id="offline-banner" class="offline-banner" hidden>Нет подключения к интернету</div>
+
+  <!-- ---------- ГЛАВНЫЙ ЭКРАН: список должников ---------- -->
+  <section id="view-main" class="view view-main">
+    <header class="main-header safe-top">
+      <div class="total-debt-label">ОБЩИЙ ДОЛГ</div>
+      <div id="total-debt-amount" class="total-debt-amount">0 сом.</div>
+      <div id="active-count" class="active-count">0 активных должников</div>
+    </header>
+
+    <div class="main-actions">
+      <button id="btn-add-debt" class="btn btn-primary btn-block btn-lg">+ Добавить долг</button>
+    </div>
+
+    <div class="search-wrap">
+      <input id="search-input" type="search" placeholder="Найти клиента" aria-label="Найти клиента" class="search-input" />
+    </div>
+
+    <div class="sort-wrap">
+      <button class="sort-chip is-active" data-sort="amount">По сумме</button>
+      <button class="sort-chip" data-sort="name">По имени</button>
+      <button class="sort-chip" data-sort="date">По операции</button>
+    </div>
+
+    <div id="clients-list" class="clients-list"></div>
+    <div id="clients-empty" class="empty-state" hidden>
+      <div class="empty-icon" aria-hidden="true"></div>
+      <div class="empty-title">Активных долгов нет</div>
+      <div class="empty-text">Все клиенты рассчитались</div>
+    </div>
+  </section>
+
+  <!-- ---------- ЭКРАН КЛИЕНТА ---------- -->
+  <section id="view-client" class="view">
+    <header class="sub-header safe-top">
+      <button class="back-btn" data-back="main">‹ Назад</button>
+      <button id="client-edit-btn" class="header-action">Изменить</button>
+    </header>
+
+    <div class="client-card">
+      <div id="client-name" class="client-name">—</div>
+      <div id="client-phone" class="client-phone"></div>
+      <div class="client-balance-label">Текущий долг</div>
+      <div id="client-balance" class="client-balance">0 сом.</div>
+    </div>
+
+    <div class="client-actions">
+      <button id="btn-client-add-debt" class="btn btn-outline-debt">+ Добавить долг</button>
+      <button id="btn-client-add-payment" class="btn btn-outline-payment">− Внести оплату</button>
+    </div>
+
+    <div class="history-header">История операций</div>
+    <div id="client-history" class="history-list"></div>
+
+    <div class="client-danger">
+      <button id="btn-delete-client" class="btn-text-danger">Удалить клиента</button>
+    </div>
+  </section>
+
+  <!-- ---------- ФОРМА: изменить клиента ---------- -->
+  <section id="view-edit-client" class="view view-modal">
+    <header class="sub-header safe-top">
+      <button class="back-btn" data-back="client">Отмена</button>
+      <div class="sub-header-title">Изменить клиента</div>
+      <span class="header-spacer"></span>
+    </header>
+    <form id="edit-client-form" class="form-body">
+      <label class="field">
+        <span class="field-label">Имя</span>
+        <input type="text" id="edit-client-name" required />
+      </label>
+      <label class="field">
+        <span class="field-label">Телефон</span>
+        <input type="tel" id="edit-client-phone" placeholder="Необязательно" />
+      </label>
+      <label class="field">
+        <span class="field-label">Заметка</span>
+        <textarea id="edit-client-notes" rows="3" placeholder="Необязательно"></textarea>
+      </label>
+      <div id="edit-client-error" class="form-error" hidden></div>
+      <button type="submit" id="edit-client-submit" class="btn btn-primary btn-block">Сохранить</button>
+    </form>
+  </section>
+
+  <!-- ---------- ФОРМА: добавить долг ---------- -->
+  <section id="view-add-debt" class="view view-modal">
+    <header class="sub-header safe-top">
+      <button class="back-btn" data-back="prev">Отмена</button>
+      <div class="sub-header-title">Добавить долг</div>
+      <span class="header-spacer"></span>
+    </header>
+    <form id="add-debt-form" class="form-body">
+      <label class="field" id="add-debt-client-field">
+        <span class="field-label">Клиент</span>
+        <input type="text" id="add-debt-client-input" placeholder="Начните вводить имя…" autocomplete="off" />
+        <div id="add-debt-client-suggestions" class="suggestions" hidden></div>
+        <input type="hidden" id="add-debt-client-id" />
+      </label>
+      <label class="field">
+        <span class="field-label">Сумма (сом.)</span>
+        <input type="number" id="add-debt-amount" inputmode="decimal" min="0.01" step="0.01" required placeholder="0" />
+      </label>
+      <label class="field">
+        <span class="field-label">Комментарий</span>
+        <input type="text" id="add-debt-description" placeholder="Например: платки" />
+      </label>
+      <label class="field">
+        <span class="field-label">Дата</span>
+        <input type="date" id="add-debt-date" required />
+      </label>
+      <div id="add-debt-error" class="form-error" hidden>
+        <span id="add-debt-error-text"></span>
+        <button type="button" id="add-debt-retry" class="btn-text-retry" hidden>Повторить</button>
+      </div>
+      <button type="submit" id="add-debt-submit" class="btn btn-debt btn-block">Добавить долг</button>
+    </form>
+  </section>
+
+  <!-- ---------- ФОРМА: внести оплату ---------- -->
+  <section id="view-add-payment" class="view view-modal">
+    <header class="sub-header safe-top">
+      <button class="back-btn" data-back="client">Отмена</button>
+      <div class="sub-header-title">Внести оплату</div>
+      <span class="header-spacer"></span>
+    </header>
+    <form id="add-payment-form" class="form-body">
+      <div class="payment-current">
+        Текущий долг: <strong id="payment-current-balance">0 сом.</strong>
+      </div>
+      <label class="field">
+        <span class="field-label">Сумма оплаты (сом.)</span>
+        <input type="number" id="add-payment-amount" inputmode="decimal" min="0.01" step="0.01" required placeholder="0" />
+      </label>
+      <label class="field">
+        <span class="field-label">Дата</span>
+        <input type="date" id="add-payment-date" required />
+      </label>
+      <button type="button" id="btn-pay-full" class="btn btn-outline btn-block">Погасить полностью</button>
+      <div id="add-payment-error" class="form-error" hidden>
+        <span id="add-payment-error-text"></span>
+        <button type="button" id="add-payment-retry" class="btn-text-retry" hidden>Повторить</button>
+      </div>
+      <button type="submit" id="add-payment-submit" class="btn btn-payment btn-block">Подтвердить оплату</button>
+    </form>
+  </section>
+
+  <!-- ---------- ЭКРАН АРХИВА ---------- -->
+  <section id="view-archive" class="view">
+    <header class="sub-header safe-top">
+      <button class="back-btn" data-back="main">‹ Назад</button>
+      <div class="sub-header-title">Архив / Погашенные</div>
+      <span class="header-spacer"></span>
+    </header>
+    <div id="archive-list" class="clients-list"></div>
+    <div id="archive-empty" class="empty-state" hidden>
+      <div class="empty-icon" aria-hidden="true"></div>
+      <div class="empty-title">Пока пусто</div>
+    </div>
+  </section>
+
+  <!-- ---------- ЭКРАН АНАЛИТИКИ ---------- -->
+  <section id="view-analytics" class="view">
+    <header class="main-header safe-top main-header-sm">
+      <div class="section-title">Аналитика</div>
+    </header>
+    <div class="analytics-grid">
+      <div class="stat-card">
+        <div class="stat-label">Общий долг</div>
+        <div id="stat-total-debt" class="stat-value">0 сом.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Активных должников</div>
+        <div id="stat-active-count" class="stat-value">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Выдано в долг за месяц</div>
+        <div id="stat-month-debt" class="stat-value">0 сом.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Получено оплат за месяц</div>
+        <div id="stat-month-payment" class="stat-value">0 сом.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Средний долг</div>
+        <div id="stat-avg-debt" class="stat-value">0 сом.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Полностью погашено</div>
+        <div id="stat-paid-count" class="stat-value">0</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- ЭКРАН НАСТРОЕК ---------- -->
+  <section id="view-settings" class="view">
+    <header class="main-header safe-top main-header-sm">
+      <div class="section-title">Настройки</div>
+    </header>
+
+    <div class="settings-list">
+      <button id="btn-open-archive" class="settings-item">
+        <span>Архив / Погашенные</span><span class="chevron">›</span>
+      </button>
+      <button id="btn-export-csv" class="settings-item">
+        <span>Экспорт CSV</span><span class="chevron">›</span>
+      </button>
+      <button id="btn-export-json" class="settings-item">
+        <span>Резервная копия (JSON)</span><span class="chevron">›</span>
+      </button>
+      <button id="btn-import-json" class="settings-item">
+        <span>Импорт из резервной копии</span><span class="chevron">›</span>
+      </button>
+      <input type="file" id="import-json-file" accept="application/json" hidden />
+      <button id="btn-open-migration" class="settings-item">
+        <span>Первоначальный перенос долгов</span><span class="chevron">›</span>
+      </button>
+      <button id="btn-sign-out" class="settings-item settings-item-danger">
+        <span>Выйти</span>
+      </button>
+    </div>
+    <div class="settings-footer">Учёт долгов клиентов · v2.1</div>
+  </section>
+
+  <!-- ---------- ЭКРАН ПЕРВОНАЧАЛЬНОЙ МИГРАЦИИ ---------- -->
+  <section id="view-migration" class="view">
+    <header class="sub-header safe-top">
+      <button class="back-btn" data-back="settings">‹ Назад</button>
+      <div class="sub-header-title">Перенос старых долгов</div>
+      <span class="header-spacer"></span>
+    </header>
+    <div id="migration-body" class="form-body"></div>
+  </section>
+
+  <!-- ---------- ЭКРАН ИМПОРТА JSON (preview) ---------- -->
+  <section id="view-import-preview" class="view">
+    <header class="sub-header safe-top">
+      <button class="back-btn" data-back="settings">Отмена</button>
+      <div class="sub-header-title">Импорт резервной копии</div>
+      <span class="header-spacer"></span>
+    </header>
+    <div id="import-preview-body" class="form-body"></div>
+  </section>
+
+  <!-- ---------- НИЖНЯЯ НАВИГАЦИЯ ---------- -->
+  <nav id="tab-bar" class="tab-bar safe-bottom">
+    <button class="tab-btn is-active" data-tab="main">
+      <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 5.5h14M5 12h14M5 18.5h9"/><circle cx="3" cy="5.5" r=".7"/><circle cx="3" cy="12" r=".7"/><circle cx="3" cy="18.5" r=".7"/></svg></span><span class="tab-label">Долги</span>
+    </button>
+    <button class="tab-btn" data-tab="analytics">
+      <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/></svg></span><span class="tab-label">Аналитика</span>
+    </button>
+    <button class="tab-btn" data-tab="settings">
+      <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1A7 7 0 0 0 15 6l-.3-2.6h-4L10.4 6A7 7 0 0 0 8 7.1l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1A7 7 0 0 0 10.4 18l.3 2.6h4L15 18a7 7 0 0 0 1.5-1.1l2.4 1 2-3.4-2-1.5a7 7 0 0 0 .1-1Z"/></svg></span><span class="tab-label">Настройки</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ---------- Тост-уведомления ---------- -->
+<div id="toast" class="toast" hidden></div>
+
+<!-- ---------- Подтверждение (диалог) ---------- -->
+<div id="confirm-overlay" class="confirm-overlay" hidden>
+  <div class="confirm-box">
+    <div id="confirm-title" class="confirm-title"></div>
+    <div id="confirm-text" class="confirm-text"></div>
+    <div class="confirm-actions">
+      <button id="confirm-cancel" class="btn btn-outline">Отмена</button>
+      <button id="confirm-ok" class="btn btn-danger">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
