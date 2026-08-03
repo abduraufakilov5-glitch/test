@@ -1,15 +1,5 @@
-const CACHE_NAME = 'dolgi-shell-v3-premium-ui';
-const REQUIRED_SHELL = ['./', './index.html', './styles.css', './app.js', './supabase.js', './auth.js', './database.js', './utils.js', './manifest.json'];
-const OPTIONAL_SHELL = ['./icons/icon-192.png', './icons/icon-512.png', 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'];
-self.addEventListener('install', event => event.waitUntil((async()=>{const cache=await caches.open(CACHE_NAME);await cache.addAll(REQUIRED_SHELL);await Promise.allSettled(OPTIONAL_SHELL.map(u=>cache.add(u)));await self.skipWaiting()})()));
-self.addEventListener('activate', event => event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)));await self.clients.claim()})()));
-self.addEventListener('fetch', event=>{
-  const req=event.request;if(req.method!=='GET')return;const url=new URL(req.url);
-  if(url.hostname.endsWith('.supabase.co')||url.hostname.endsWith('.supabase.in'))return;
-  const sameOrigin=url.origin===self.location.origin;const isSupabaseLibrary=url.hostname==='cdn.jsdelivr.net'&&url.pathname.includes('@supabase/supabase-js');
-  if(!sameOrigin&&!isSupabaseLibrary)return;
-  event.respondWith((async()=>{
-    try{const response=await fetch(req);if(response.ok){const cache=await caches.open(CACHE_NAME);cache.put(req,response.clone()).catch(()=>{})}return response}
-    catch(err){const cached=await caches.match(req);if(cached)return cached;if(req.mode==='navigate')return(await caches.match('./index.html'))||Response.error();throw err}
-  })());
-});
+const CACHE_NAME='magazin-shell-v4-20260803';
+const SHELL=['./','./index.html','./styles.css','./app.js','./supabase.js','./auth.js','./database.js','./utils.js','./manifest.json'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',e=>{const r=e.request;if(r.method!=='GET')return;const u=new URL(r.url);if(u.hostname.endsWith('.supabase.co')||u.hostname.endsWith('.supabase.in'))return;if(u.origin!==self.location.origin)return;e.respondWith(fetch(r).then(x=>{if(x.ok)caches.open(CACHE_NAME).then(c=>c.put(r,x.clone()));return x}).catch(()=>caches.match(r).then(x=>x||(r.mode==='navigate'?caches.match('./index.html'):Response.error()))));});
