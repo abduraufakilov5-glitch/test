@@ -7,8 +7,8 @@
 //  ключ с полным доступом, ему не место во frontend-коде.
 // ============================================================
 
-const SUPABASE_URL = 'https://nbwrvptujhyjfrfthqme.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_SIojg1En4IMh-vq8U62U8g_dyA25r2S';
+const SUPABASE_URL = 'https://adviprrgbitenfubczfn.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_SFjC8cschOIeirqKBTpg6w_-ZlWQ7fH';
 
 if (typeof window.supabase === 'undefined') {
   throw new Error(
